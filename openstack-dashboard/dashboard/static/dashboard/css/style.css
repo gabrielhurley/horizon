@@ -772,7 +772,14 @@ td.actions_column .row_actions button {
   box-shadow: none;
 }
 
+td.actions_column .row_actions .hide {
+  display: none;
+}
+
 /* Makes size consistent across browsers when mixing "btn-group" and "small" */
+.btn.hide, .btn-group .hide {
+  display: none;
+}
 .btn-group > .btn.small {
   height: 12px;
 }

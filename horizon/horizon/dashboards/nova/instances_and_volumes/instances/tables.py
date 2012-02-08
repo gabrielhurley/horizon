@@ -18,6 +18,7 @@ import logging
 
 from django import template
 from django.template.defaultfilters import title
+from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 
 from horizon import api
@@ -158,6 +159,15 @@ class LogLink(tables.LinkAction):
         return instance.status in ACTIVE_STATES
 
 
+class UpdateRow(tables.UpdateAction):
+    def get_data(self, request, instance_id):
+        instance = api.server_get(request, instance_id)
+        flavors = api.flavor_list(request)
+        keyed_flavors = [(str(flavor.id), flavor) for flavor in flavors]
+        instance.full_flavor = SortedDict(keyed_flavors)[instance.flavor["id"]]
+        return instance
+
+
 def get_ips(instance):
     template_name = 'nova/instances_and_volumes/instances/_instance_ips.html'
     context = {"instance": instance}
@@ -183,7 +193,7 @@ class InstancesTable(tables.DataTable):
                                       "instances:detail")
     ip = tables.Column(get_ips, verbose_name=_("IP Address"))
     size = tables.Column(get_size, verbose_name=_("Size"))
-    status = tables.Column("status", filters=(title,))
+    status = tables.Column("status", filters=(title,), status=True)
     task = tables.Column("OS-EXT-STS:task_state",
                          verbose_name=_("Task"),
                          filters=(title,))
@@ -194,7 +204,8 @@ class InstancesTable(tables.DataTable):
     class Meta:
         name = "instances"
         verbose_name = _("Instances")
+        status_column = "task"
         table_actions = (LaunchLink, TerminateInstance)
         row_actions = (EditInstance, ConsoleLink, LogLink, SnapshotLink,
                        TogglePause, ToggleSuspend, RebootInstance,
-                       TerminateInstance)
+                       TerminateInstance, UpdateRow)

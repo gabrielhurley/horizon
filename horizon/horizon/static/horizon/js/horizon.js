@@ -28,6 +28,19 @@ var Horizon = function() {
     initFunctions = [];
   };
 
+  horizon.datatables = {
+    update: function () {
+      var rows_to_update = $('tr.status_unknown');
+      if (rows_to_update.length) {
+        // Trigger the update handler.
+        rows_to_update.find('.ajax-update').click();
+        // Poll until there are no rows in an "unknown" state on the page.
+        // FIXME(gabriel): This interval should be either configurable.
+        setTimeout(horizon.datatables.update, 3000);
+      }
+    }
+  };
+
   return horizon;
 };
 
