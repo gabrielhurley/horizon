@@ -775,9 +775,14 @@ tr.terminated {
   margin-bottom: -5px;
 }
 
-a.view_full {
-  float: right;
-  margin: 10px 10px 0 0;
+#main_content .nav-tabs {
+  margin-bottom: 0;
+}
+
+#main_content .tab-content {
+  border: 1px solid #ddd;
+  border-top: 0 none;
+  padding: 10px;
 }
 
 .tab_wrapper {
@@ -851,4 +856,16 @@ form .error {
   background: #fce6e6;
   color: #b94a48;
   border: 1px solid #E9B1B0;
+}
+
+#main_content .row-fluid {
+  margin: 10px 0 20px;
+}
+
+#main_content .row-fluid:last-child {
+  margin-bottom: 0;
+}
+
+.header_rule {
+  margin: 0 0 10px;
 }
