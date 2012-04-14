@@ -21,14 +21,14 @@
 
 from django.conf import settings
 from django.core import urlresolvers
-from django.test.client import Client
 from django.utils.importlib import import_module
 from django.utils.translation import ugettext_lazy as _
+
+from openstack_auth import user, backend
 
 import horizon
 from horizon import base
 from horizon import test
-from horizon import users
 from horizon.dashboards.nova.dashboard import Nova
 from horizon.dashboards.syspanel.dashboard import Syspanel
 from horizon.dashboards.settings.dashboard import Settings
@@ -166,8 +166,8 @@ class HorizonTests(BaseHorizonTests):
         self.assertEqual(repr(base.Horizon), "<Site: horizon>")
         dash = base.Horizon.get_dashboard('cats')
         self.assertEqual(base.Horizon.get_default_dashboard(), dash)
-        user = users.User()
-        self.assertEqual(base.Horizon.get_user_home(user),
+        test_user = user.User()
+        self.assertEqual(base.Horizon.get_user_home(test_user),
                          dash.get_absolute_url())
 
     def test_dashboard(self):
@@ -230,24 +230,23 @@ class HorizonTests(BaseHorizonTests):
         self.assertFalse(hasattr(cats, "evil"))
 
     def test_public(self):
-        users.get_user_from_request = self._real_get_user_from_request
+        backend.get_user = self._real_get_user
         dogs = horizon.get_dashboard("dogs")
         # Known to have no restrictions on it other than being logged in.
         puppies = dogs.get_panel("puppies")
         url = puppies.get_absolute_url()
         # Get a clean, logged out client instance.
-        client = Client()
-        client.logout()
-        resp = client.get(url)
-        redirect_url = "?".join([urlresolvers.reverse("horizon:auth_login"),
+        self.setActiveUser()
+        resp = self.client.get(url)
+        redirect_url = "?".join([urlresolvers.reverse("login"),
                                  "next=%s" % url])
         self.assertRedirectsNoFollow(resp, redirect_url)
         # Simulate ajax call
-        resp = client.get(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        resp = self.client.get(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         # Response should be HTTP 401 with redirect header
         self.assertEquals(resp.status_code, 401)
         self.assertEquals(resp["X-Horizon-Location"],
-                          "?".join([urlresolvers.reverse("horizon:auth_login"),
+                          "?".join([urlresolvers.reverse("login"),
                                     "next=%s" % url]))
 
     def test_required_services(self):
@@ -266,7 +265,7 @@ class HorizonTests(BaseHorizonTests):
         new_catalog = [service for service in self.request.user.service_catalog
                        if service['type'] != MyPanel.services[0]]
         tenants = self.context['authorized_tenants']
-        self.setActiveUser(token=self.token.id,
+        self.setActiveUser(token=self.token,
                            username=self.user.name,
                            tenant_id=self.tenant.id,
                            service_catalog=new_catalog,
@@ -279,7 +278,7 @@ class HorizonTests(BaseHorizonTests):
         panel = dash.get_panel('tigers')
 
         # Non-admin user
-        self.setActiveUser(token=self.token.id,
+        self.setActiveUser(token=self.token,
                            username=self.user.name,
                            tenant_id=self.tenant.id,
                            service_catalog=self.service_catalog,
@@ -294,7 +293,7 @@ class HorizonTests(BaseHorizonTests):
         self.assertEqual(resp.status_code, 401)
 
         # Set roles for admin user
-        self.setActiveUser(token=self.token.id,
+        self.setActiveUser(token=self.token,
                            username=self.user.name,
                            tenant_id=self.tenant.id,
                            service_catalog=self.request.user.service_catalog,
@@ -310,16 +309,15 @@ class HorizonTests(BaseHorizonTests):
         self.assertEqual(resp.status_code, 200)
 
     def test_ssl_redirect_by_proxy(self):
-        users.get_user_from_request = self._real_get_user_from_request
+        backend.get_user = self._real_get_user
         dogs = horizon.get_dashboard("dogs")
         puppies = dogs.get_panel("puppies")
         url = puppies.get_absolute_url()
-        redirect_url = "?".join([urlresolvers.reverse("horizon:auth_login"),
+        redirect_url = "?".join([urlresolvers.reverse("login"),
                                  "next=%s" % url])
 
-        client = Client()
-        client.logout()
-        resp = client.get(url)
+        self.setActiveUser()
+        resp = self.client.get(url)
         self.assertRedirectsNoFollow(resp, redirect_url)
 
         # Set SSL settings for test server
@@ -327,7 +325,7 @@ class HorizonTests(BaseHorizonTests):
         settings.SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL',
                                             'https')
 
-        resp = client.get(url, HTTP_X_FORWARDED_PROTOCOL="https")
+        resp = self.client.get(url, HTTP_X_FORWARDED_PROTOCOL="https")
         self.assertRedirectsNoFollow(resp, redirect_url)
 
         # Restore settings

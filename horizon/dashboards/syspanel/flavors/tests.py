@@ -9,7 +9,7 @@ from horizon import test
 class FlavorsTests(test.TestCase):
     def test_create_new_flavor_when_none_exist(self):
         # Set admin role
-        self.setActiveUser(token=self.token.id,
+        self.setActiveUser(token=self.token,
                    username=self.user.name,
                    tenant_id=self.tenant.id,
                    service_catalog=self.request.user.service_catalog,

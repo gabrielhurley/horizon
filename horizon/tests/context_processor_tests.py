@@ -40,11 +40,7 @@ class ContextProcessorTests(test.TestCase):
 
     def test_authorized_tenants(self):
         tenant_list = self.context['authorized_tenants']
-        self.request.user.authorized_tenants = None  # Reset from setUp
         self.mox.StubOutWithMock(api, 'tenant_list_for_token')
-        api.tenant_list_for_token(IsA(http.HttpRequest), self.token.id) \
-                                  .AndReturn(tenant_list)
-        self.mox.ReplayAll()
 
         middleware.HorizonMiddleware().process_request(self.request)
         # Without dashboard that has "supports_tenants = True"
