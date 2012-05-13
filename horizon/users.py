@@ -25,7 +25,6 @@ import logging
 
 from django.utils.translation import ugettext as _
 
-from horizon import api
 from horizon import exceptions
 
 
@@ -146,19 +145,3 @@ class User(object):
         ``django.contrib.auth.models.User``.
         """
         return []
-
-    @property
-    def authorized_tenants(self):
-        if self.is_authenticated() and self._authorized_tenants is None:
-            try:
-                token = self._request.session.get("unscoped_token", self.token)
-                authd = api.tenant_list_for_token(self._request, token)
-            except:
-                authd = []
-                LOG.exception('Could not retrieve tenant list.')
-            self._authorized_tenants = authd
-        return self._authorized_tenants
-
-    @authorized_tenants.setter
-    def authorized_tenants(self, tenant_list):
-        self._authorized_tenants = tenant_list

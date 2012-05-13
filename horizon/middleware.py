@@ -68,7 +68,7 @@ class HorizonMiddleware(object):
         """
         if isinstance(exception,
                 (exceptions.NotAuthorized, exceptions.NotAuthenticated)):
-            auth_url = reverse("horizon:auth_login")
+            auth_url = reverse("horizon:login")
             next_url = iri_to_uri(request.get_full_path())
             if next_url != auth_url:
                 param = "?%s=%s" % (REDIRECT_FIELD_NAME, next_url)

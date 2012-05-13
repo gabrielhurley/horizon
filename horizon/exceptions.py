@@ -26,10 +26,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.utils import termcolors
 from django.utils.translation import ugettext as _
-from cloudfiles import errors as swiftclient
-from glanceclient.common import exceptions as glanceclient
-from keystoneclient import exceptions as keystoneclient
-from novaclient import exceptions as novaclient
 
 
 LOG = logging.getLogger(__name__)
@@ -87,16 +83,6 @@ class RecoverableError(HorizonException):
     status_code = 100  # HTTP status code "Continue"
 
 
-class ServiceCatalogException(HorizonException):
-    """
-    Raised when a requested service is not available in the ``ServiceCatalog``
-    returned by Keystone.
-    """
-    def __init__(self, service_name):
-        message = 'Invalid service catalog service: %s' % service_name
-        super(ServiceCatalogException, self).__init__(message)
-
-
 class AlreadyExists(HorizonException):
     """
     Exception to be raised when trying to create an API resource which
@@ -129,32 +115,15 @@ HORIZON_CONFIG = getattr(settings, "HORIZON_CONFIG", {})
 EXCEPTION_CONFIG = HORIZON_CONFIG.get("exceptions", {})
 
 
-UNAUTHORIZED = (keystoneclient.Unauthorized,
-                keystoneclient.Forbidden,
-                novaclient.Unauthorized,
-                novaclient.Forbidden,
-                glanceclient.AuthorizationFailure,
-                glanceclient.Unauthorized,
-                swiftclient.AuthenticationFailed,
-                swiftclient.AuthenticationError)
+UNAUTHORIZED = ()
 UNAUTHORIZED += tuple(EXCEPTION_CONFIG.get('unauthorized', []))
 
-NOT_FOUND = (keystoneclient.NotFound,
-             novaclient.NotFound,
-             glanceclient.NotFound,
-             swiftclient.NoSuchContainer,
-             swiftclient.NoSuchObject)
+NOT_FOUND = ()
 NOT_FOUND += tuple(EXCEPTION_CONFIG.get('not_found', []))
 
 
 # NOTE(gabriel): This is very broad, and may need to be dialed in.
-RECOVERABLE = (keystoneclient.ClientException,
-               # AuthorizationFailure is raised when Keystone is "unavailable".
-               keystoneclient.AuthorizationFailure,
-               novaclient.ClientException,
-               glanceclient.ClientException,
-               swiftclient.Error,
-               AlreadyExists)
+RECOVERABLE = (AlreadyExists,)
 RECOVERABLE += tuple(EXCEPTION_CONFIG.get('recoverable', []))
 
 

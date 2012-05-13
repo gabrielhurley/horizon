@@ -21,7 +21,6 @@
 import datetime
 import os
 
-import cloudfiles as swift_client
 from django import http
 from django import test as django_test
 from django.conf import settings
@@ -29,17 +28,12 @@ from django.contrib.messages.storage import default_storage
 from django.core.handlers import wsgi
 from django.test.client import RequestFactory
 from functools import wraps
-from glanceclient.v1 import client as glance_client
-from keystoneclient.v2_0 import client as keystone_client
-from novaclient.v1_1 import client as nova_client
 import httplib2
 import mox
 
-from horizon import api
 from horizon import context_processors
 from horizon import middleware
 from horizon import users
-from horizon.tests.test_data.utils import load_test_data
 
 from .time import time
 from .time import today
@@ -52,7 +46,7 @@ wsgi.WSGIRequest.__repr__ = lambda self: "<class 'django.http.HttpRequest'>"
 
 def create_stubs(stubs_to_create={}):
     if not isinstance(stubs_to_create, dict):
-        raise TypeError, ("create_stub must be passed a dict, but a %s was " \
+        raise TypeError("create_stub must be passed a dict, but a %s was " \
                 "given." % type(stubs_to_create).__name__)
 
     def inner_stub_out(fn):
@@ -61,7 +55,7 @@ def create_stubs(stubs_to_create={}):
             for key in stubs_to_create:
                 if not (isinstance(stubs_to_create[key], tuple) or \
                         isinstance(stubs_to_create[key], list)):
-                    raise TypeError, ("The values of the create_stub " \
+                    raise TypeError("The values of the create_stub " \
                             "dict must be lists or tuples, but is a %s." %
                             type(stubs_to_create[key]).__name__)
 
@@ -91,10 +85,6 @@ class TestCase(django_test.TestCase):
     Specialized base test case class for Horizon which gives access to
     numerous additional features:
 
-      * A full suite of test data through various attached objects and
-        managers (e.g. ``self.servers``, ``self.user``, etc.). See the
-        docs for :class:`~horizon.tests.test_data.utils.TestData` for more
-        information.
       * The ``mox`` mocking framework via ``self.mox``.
       * A set of request context data via ``self.context``.
       * A ``RequestFactory`` class which supports Django's ``contrib.messages``
@@ -104,10 +94,9 @@ class TestCase(django_test.TestCase):
       * Several handy additional assertion methods.
     """
     def setUp(self):
-        load_test_data(self)
         self.mox = mox.Mox()
         self.factory = RequestFactoryWithMessages()
-        self.context = {'authorized_tenants': self.tenants.list()}
+        self.context = {}
 
         def fake_conn_request(*args, **kwargs):
             raise Exception("An external URI request tried to escape through "
@@ -121,16 +110,8 @@ class TestCase(django_test.TestCase):
         context_processors.horizon = lambda request: self.context
 
         self._real_get_user_from_request = users.get_user_from_request
-        tenants = self.context['authorized_tenants']
-        self.setActiveUser(id=self.user.id,
-                           token=self.token.id,
-                           username=self.user.name,
-                           tenant_id=self.tenant.id,
-                           service_catalog=self.service_catalog,
-                           authorized_tenants=tenants)
         self.request = http.HttpRequest()
         self.request.session = self.client._session()
-        self.request.session['token'] = self.token.id
         middleware.HorizonMiddleware().process_request(self.request)
         os.environ["HORIZON_TEST_RUN"] = "True"
 
@@ -141,19 +122,6 @@ class TestCase(django_test.TestCase):
         users.get_user_from_request = self._real_get_user_from_request
         self.mox.VerifyAll()
         del os.environ["HORIZON_TEST_RUN"]
-
-    def setActiveUser(self, id=None, token=None, username=None, tenant_id=None,
-                        service_catalog=None, tenant_name=None, roles=None,
-                        authorized_tenants=None):
-        users.get_user_from_request = lambda x: \
-                users.User(id=id,
-                           token=token,
-                           user=username,
-                           tenant_id=tenant_id,
-                           service_catalog=service_catalog,
-                           roles=roles,
-                           authorized_tenants=authorized_tenants,
-                           request=self.request)
 
     def override_times(self):
         """ Overrides the "current" time with immutable values. """
@@ -262,77 +230,3 @@ class TestCase(django_test.TestCase):
                              (key, field_errors) in errors.items()])
         else:
             assert len(errors) > 0, "No errors were found on the form"
-
-
-class BaseAdminViewTests(TestCase):
-    """
-    A ``TestCase`` subclass which sets an active user with the "admin" role
-    for testing admin-only views and functionality.
-    """
-    def setActiveUser(self, *args, **kwargs):
-        if "roles" not in kwargs:
-            kwargs['roles'] = [self.roles.admin._info]
-        super(BaseAdminViewTests, self).setActiveUser(*args, **kwargs)
-
-
-class APITestCase(TestCase):
-    """
-    The ``APITestCase`` class is for use with tests which deal with the
-    underlying clients rather than stubbing out the horizon.api.* methods.
-    """
-    def setUp(self):
-        super(APITestCase, self).setUp()
-
-        def fake_keystoneclient(request, username=None, password=None,
-                                tenant_id=None, token_id=None, endpoint=None,
-                                admin=False):
-            """
-            Wrapper function which returns the stub keystoneclient. Only
-            necessary because the function takes too many arguments to
-            conveniently be a lambda.
-            """
-            return self.stub_keystoneclient()
-
-        # Store the original clients
-        self._original_glanceclient = api.glance.glanceclient
-        self._original_keystoneclient = api.keystone.keystoneclient
-        self._original_novaclient = api.nova.novaclient
-
-        # Replace the clients with our stubs.
-        api.glance.glanceclient = lambda request: self.stub_glanceclient()
-        api.keystone.keystoneclient = fake_keystoneclient
-        api.nova.novaclient = lambda request: self.stub_novaclient()
-
-    def tearDown(self):
-        super(APITestCase, self).tearDown()
-        api.glance.glanceclient = self._original_glanceclient
-        api.nova.novaclient = self._original_novaclient
-        api.keystone.keystoneclient = self._original_keystoneclient
-
-    def stub_novaclient(self):
-        if not hasattr(self, "novaclient"):
-            self.mox.StubOutWithMock(nova_client, 'Client')
-            self.novaclient = self.mox.CreateMock(nova_client.Client)
-        return self.novaclient
-
-    def stub_keystoneclient(self):
-        if not hasattr(self, "keystoneclient"):
-            self.mox.StubOutWithMock(keystone_client, 'Client')
-            self.keystoneclient = self.mox.CreateMock(keystone_client.Client)
-        return self.keystoneclient
-
-    def stub_glanceclient(self):
-        if not hasattr(self, "glanceclient"):
-            self.mox.StubOutWithMock(glance_client, 'Client')
-            self.glanceclient = self.mox.CreateMock(glance_client.Client)
-        return self.glanceclient
-
-    def stub_swiftclient(self, expected_calls=1):
-        if not hasattr(self, "swiftclient"):
-            self.mox.StubOutWithMock(swift_client, 'Connection')
-            self.swiftclient = self.mox.CreateMock(swift_client.Connection)
-            while expected_calls:
-                swift_client.Connection(auth=mox.IgnoreArg())\
-                            .AndReturn(self.swiftclient)
-                expected_calls -= 1
-        return self.swiftclient

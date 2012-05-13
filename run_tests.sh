@@ -28,10 +28,6 @@ function usage {
   echo "  -y, --pylint             Just run pylint"
   echo "  -q, --quiet              Run non-interactively. (Relatively) quiet."
   echo "                           Implies -V if -N is not set."
-  echo "  --with-selenium          Run unit tests including Selenium tests"
-  echo "  --runserver              Run the Django development server for"
-  echo "                           openstack_dashboard in the virtual"
-  echo "                           environment."
   echo "  --docs                   Just build the documentation"
   echo "  --backup-environment     Make a backup of the environment on exit"
   echo "  --restore-environment    Restore the environment before running"
@@ -50,7 +46,7 @@ function usage {
 root=`pwd`
 venv=$root/.venv
 with_venv=tools/with_venv.sh
-included_dirs="openstack_dashboard horizon"
+included_dirs="horizon"
 
 always_venv=0
 backup_env=0
@@ -64,8 +60,6 @@ just_tabs=0
 never_venv=0
 quiet=0
 restore_env=0
-runserver=0
-selenium=0
 testargs=""
 with_coverage=0
 makemessages=0
@@ -87,9 +81,7 @@ function process_option {
     -c|--coverage) with_coverage=1;;
     -m|--manage) manage=1;;
     --makemessages) makemessages=1;;
-    --with-selenium) selenium=1;;
     --docs) just_docs=1;;
-    --runserver) runserver=1;;
     --backup-environment) backup_env=1;;
     --restore-environment) restore_env=1;;
     --destroy-environment) destroy=1;;
@@ -99,12 +91,6 @@ function process_option {
 
 function run_management_command {
   ${command_wrapper} python $root/manage.py $testargs
-}
-
-function run_server {
-  echo "Starting Django development server..."
-  ${command_wrapper} python $root/manage.py runserver $testargs
-  echo "Server stopped."
 }
 
 function run_pylint {
@@ -140,7 +126,7 @@ function run_pep8 {
 
 function run_sphinx {
     echo "Building sphinx..."
-    export DJANGO_SETTINGS_MODULE=openstack_dashboard.settings
+    export DJANGO_SETTINGS_MODULE=horizon.tests.settings
     ${command_wrapper} sphinx-build -b html docs/source docs/build/html
     echo "Build complete."
 }
@@ -273,17 +259,9 @@ function run_tests {
 
   echo "Running Horizon application tests"
   ${command_wrapper} coverage erase
-  ${command_wrapper} coverage run -p $root/manage.py test horizon --settings=horizon.tests.testsettings $testargs
+  ${command_wrapper} coverage run -p $root/manage.py test horizon --settings=horizon.tests.settings $testargs
   # get results of the Horizon tests
   HORIZON_RESULT=$?
-
-  echo "Running openstack_dashboard tests"
-  if [ $selenium -eq 1 ]; then
-    export WITH_SELENIUM=1
-  fi
-  ${command_wrapper} coverage run -p $root/manage.py test openstack_dashboard --settings=openstack_dashboard.test.settings $testargs
-  # get results of the openstack_dashboard tests
-  DASHBOARD_RESULT=$?
 
   if [ $with_coverage -eq 1 ]; then
     echo "Generating coverage reports"
@@ -294,23 +272,20 @@ function run_tests {
   # Remove the leftover coverage files from the -p flag earlier.
   rm -f .coverage.*
 
-  if [ $(($HORIZON_RESULT || $DASHBOARD_RESULT)) -eq 0 ]; then
+  if [ $HORIZON_RESULT -eq 0 ]; then
     echo "Tests completed successfully."
   else
     echo "Tests failed."
   fi
-  exit $(($HORIZON_RESULT || $DASHBOARD_RESULT))
+  exit $HORIZON_RESULT
 }
 
 function run_makemessages {
   cd horizon
   ${command_wrapper} $root/manage.py makemessages --all
   HORIZON_RESULT=$?
-  cd ../openstack_dashboard
-  ${command_wrapper} $root/manage.py makemessages --all
-  DASHBOARD_RESULT=$?
   cd ..
-  exit $(($HORIZON_RESULT || $DASHBOARD_RESULT))
+  exit $HORIZON_RESULT
 }
 
 
@@ -389,12 +364,6 @@ fi
 # Tab checker
 if [ $just_tabs -eq 1 ]; then
     tab_check
-    exit $?
-fi
-
-# Django development server
-if [ $runserver -eq 1 ]; then
-    run_server
     exit $?
 fi
 

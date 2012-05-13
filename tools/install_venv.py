@@ -21,7 +21,7 @@
 #    under the License.
 
 """
-Installation script for the OpenStack Dashboard development virtualenv.
+Installation script for the Horizon development virtualenv.
 """
 
 import os
@@ -105,9 +105,6 @@ def create_virtualenv(venv=VENV):
     if not run_command([WITH_VENV, 'easy_install', 'pip']).strip():
         die("Failed to install pip.")
     print 'done.'
-    print 'Installing distribute in virtualenv...'
-    pip_install('distribute>=0.6.24')
-    print 'done.'
 
 
 def pip_install(*args):
@@ -120,12 +117,6 @@ def install_dependencies(venv=VENV):
     print "(This may take several minutes, don't panic)"
     pip_install('-r', TEST_REQUIRES)
     pip_install('-r', PIP_REQUIRES)
-
-    # Tell the virtual env how to "import dashboard"
-    py = 'python%d.%d' % (sys.version_info[0], sys.version_info[1])
-    pthfile = os.path.join(venv, "lib", py, "site-packages", "dashboard.pth")
-    f = open(pthfile, 'w')
-    f.write("%s\n" % ROOT)
 
 
 def install_horizon():

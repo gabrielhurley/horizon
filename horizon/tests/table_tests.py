@@ -55,7 +55,7 @@ TEST_DATA_3 = (
 class MyLinkAction(tables.LinkAction):
     name = "login"
     verbose_name = "Log In"
-    url = "horizon:auth_login"
+    url = "horizon:login"
     attrs = {
         "class": "ajax-modal",
     }
@@ -138,7 +138,7 @@ def get_name(obj):
 
 
 def get_link(obj):
-    return reverse('horizon:auth_login')
+    return reverse('horizon:login')
 
 
 class MyTable(tables.DataTable):
@@ -330,7 +330,7 @@ class DataTableTests(test.TestCase):
         self.assertNotIn("hide", name_col.get_final_attrs().get('class', ""))
         # link and get_link_url
         self.assertIn('href="http://example.com/"', row.cells['value'].value)
-        self.assertIn('href="/auth/login/"', row.cells['status'].value)
+        self.assertIn('href="/auth/login"', row.cells['status'].value)
         # empty_value
         self.assertEqual(row3.cells['optional'].value, "N/A")
         # classes
@@ -388,7 +388,7 @@ class DataTableTests(test.TestCase):
         self.assertContains(resp, "<li", 3)
         self.assertContains(resp, "my_table__delete__1", 1)
         self.assertContains(resp, "my_table__toggle__1", 1)
-        self.assertContains(resp, "/auth/login/", 1)
+        self.assertContains(resp, "/auth/login", 1)
         self.assertContains(resp, "ajax-modal", 1)
         self.assertContains(resp, 'id="my_table__row_1__action_delete"', 1)
         # Whole table
