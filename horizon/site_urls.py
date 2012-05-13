@@ -27,7 +27,8 @@ urlpatterns = patterns('horizon.views.auth',
 
 urlpatterns += patterns('',
     url(r'^auth/login$', 'django.contrib.auth.views.login', name="login"),
-    url(r'^auth/logout$', 'django.contrib.auth.views.logout', name="logout"),
+    url(r'^auth/logout$', 'django.contrib.auth.views.logout',
+                          {'next_page': '/'}, name="logout"),
     url(r'^i18n/setlang/$', 'django.views.i18n.set_language',
         name="set_language"),
     url(r'^i18n/', include('django.conf.urls.i18n')))
