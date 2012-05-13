@@ -137,8 +137,8 @@ class ToggleSuspend(tables.BatchAction):
 class LaunchLink(tables.LinkAction):
     name = "launch"
     verbose_name = _("Launch Instance")
-    url = "horizon:nova:images_and_snapshots:index"
-    classes = ("btn-launch",)
+    url = "horizon:nova:instances_and_volumes:instances:launch"
+    classes = ("btn-launch", "ajax-modal")
 
 
 class EditInstance(tables.LinkAction):

@@ -16,6 +16,7 @@
 
 import logging
 
+from django.core.urlresolvers import reverse
 from django.template import defaultfilters as filters
 from django.utils.translation import ugettext_lazy as _
 
@@ -24,6 +25,19 @@ from horizon import tables
 
 
 LOG = logging.getLogger(__name__)
+
+
+class LaunchImage(tables.LinkAction):
+    name = "launch_image"
+    verbose_name = _("Launch")
+    url = "horizon:nova:instances_and_volumes:instances:launch"
+    classes = ("btn-launch", "ajax-modal")
+
+    def get_link_url(self, datum):
+        base_url = reverse(self.url)
+        params = ("source_type=image_id&source_id=%s"
+                  % self.table.get_object_id(datum))
+        return "?".join([base_url, params])
 
 
 class DeleteImage(tables.DeleteAction):
@@ -38,18 +52,6 @@ class DeleteImage(tables.DeleteAction):
 
     def delete(self, request, obj_id):
         api.image_delete(request, obj_id)
-
-
-class LaunchImage(tables.LinkAction):
-    name = "launch"
-    verbose_name = _("Launch")
-    url = "horizon:nova:images_and_snapshots:images:launch"
-    classes = ("ajax-modal", "btn-launch")
-
-    def allowed(self, request, image=None):
-        if image:
-            return image.status in ('active',)
-        return False
 
 
 class EditImage(tables.LinkAction):
