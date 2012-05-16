@@ -34,6 +34,7 @@ from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.utils import termcolors
+from django.core.paginator import Paginator, InvalidPage, EmptyPage
 
 from horizon import exceptions
 from horizon.utils import html
@@ -1079,6 +1080,19 @@ class DataTable(object):
         try:
             for datum in self.filtered_data:
                 rows.append(self._meta.row_class(self, datum))
+            # Show 10 rows per page
+            paginator = Paginator(rows, 10)
+            # Make sure page request is an int. If not, deliver first page.
+            try:
+                page = int(self._meta.request.GET.get('page', '1'))
+            except ValueError:
+                page = 1
+            # If page request (9999) is out of range, 
+            # deliver last page of results.
+            try:
+                rows = paginator.page(page)
+            except (EmptyPage, InvalidPage):
+                rows = paginator.page(paginator.num_pages)
         except:
             # Exceptions can be swallowed at the template level here,
             # re-raising as a TemplateSyntaxError makes them visible.

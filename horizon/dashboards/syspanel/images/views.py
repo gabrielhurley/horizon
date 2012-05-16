@@ -40,7 +40,8 @@ class IndexView(tables.DataTableView):
     def get_data(self):
         images = []
         try:
-            images = api.image_list_detailed(self.request)
+            # Get 9999 items default.
+            images = api.image_list_detailed(self.request, limit=9999)
         except:
             msg = _('Unable to retrieve image list.')
             exceptions.handle(self.request, msg)

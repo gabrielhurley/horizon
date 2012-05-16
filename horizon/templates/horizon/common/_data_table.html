@@ -29,6 +29,17 @@
       <tr>
         <td colspan="{{ table.get_columns|length }}">
           <span>{% blocktrans count counter=rows|length %}Displaying {{ counter }} item{% plural %}Displaying {{ counter }} items{% endblocktrans %}</span>
+          <span class="step-links" style="float:right">
+          {% if rows.has_previous %} 
+            <a href="?page={{ rows.previous_page_number }}">previous</a>
+          {% endif %}
+          <span class="current">
+            Page {{ rows.number }} of {{ rows.paginator.num_pages }}
+          </span>
+          {% if rows.has_next %}
+            <a href="?page={{ rows.next_page_number }}">next</a>
+          {% endif %}
+          </span>
           {% if table.has_more_data %}
           <span class="spacer">|</span>
           <a href="?marker={{ table.get_marker }}">More&nbsp;&raquo;</a>

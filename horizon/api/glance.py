@@ -51,8 +51,9 @@ def image_get(request, image_id):
     return glanceclient(request).images.get(image_id)
 
 
-def image_list_detailed(request):
-    return glanceclient(request).images.list()
+def image_list_detailed(request, limit=None, filters=None):
+    return glanceclient(request).images.list(limit=limit,
+                                             filters=filters)
 
 
 def image_update(request, image_id, **kwargs):
