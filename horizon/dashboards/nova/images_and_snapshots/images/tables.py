@@ -55,6 +55,13 @@ class DeleteImage(tables.DeleteAction):
         api.image_delete(request, obj_id)
 
 
+class CreateImage(tables.LinkAction):
+    name = "create"
+    verbose_name = _("Create Image")
+    url = "horizon:nova:images_and_snapshots:images:create"
+    classes = ("ajax-modal", "btn-create")
+
+
 class EditImage(tables.LinkAction):
     name = "edit"
     verbose_name = _("Edit")
@@ -100,6 +107,6 @@ class ImagesTable(tables.DataTable):
     class Meta:
         name = "images"
         verbose_name = _("Images")
-        table_actions = (DeleteImage,)
-        row_actions = (LaunchImage, EditImage, DeleteImage)
+        table_actions = (CreateImage, DeleteImage,)
+        row_actions = (LaunchImage, EditImage, DeleteImage,)
         pagination_param = "image_marker"

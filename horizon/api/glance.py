@@ -69,6 +69,10 @@ def image_update(request, image_id, **kwargs):
     return glanceclient(request).images.update(image_id, **kwargs)
 
 
+def image_create(request, **kwargs):
+    return glanceclient(request).images.create(**kwargs)
+
+
 def snapshot_list_detailed(request, marker=None, extra_filters=None):
     filters = {'property-image_type': 'snapshot'}
     filters.update(extra_filters or {})
