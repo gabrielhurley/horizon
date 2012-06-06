@@ -90,7 +90,7 @@ class CreateImageForm(forms.SelfHandlingForm):
                 'name': data['name']}
 
         try:
-            api.image_create(request, **meta)
+            api.glance.image_create(request, **meta)
             messages.success(request,
                 _('Your image %s has been queued for creation.' %
                     data['name']))

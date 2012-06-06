@@ -39,24 +39,31 @@ class ImageViewTests(test.TestCase):
 
     @test.create_stubs({api.glance: ('image_create',)})
     def test_image_create_post(self):
-        form_data = {
-                'name': 'Ubuntu 11.10',
-                'copy_from': 'http://cloud-images.ubuntu.com/releases/'
-                            'oneiric/release/ubuntu-11.10-server-cloudimg'
-                            '-amd64-disk1.img',
-                'disk_format': 'qcow2',
-                'minimum_disk': '15',
-                'minimum_ram': '512',
-                'is_public': '1',
+        data = {
+                'name': u'Ubuntu 11.10',
+                'copy_from': u'http://cloud-images.ubuntu.com/releases/'
+                             u'oneiric/release/ubuntu-11.10-server-cloudimg'
+                             u'-amd64-disk1.img',
+                'disk_format': u'qcow2',
+                'minimum_disk': 15,
+                'minimum_ram': 512,
+                'is_public': 1,
                 'method': 'CreateImageForm'
                 }
 
-        api.glance.image_create(IsA(http.HttpRequest), **form_data). \
-                AndReturn(self.images.first())
+        api.glance.image_create(IsA(http.HttpRequest),
+                                container_format="bare",
+                                copy_from=data['copy_from'],
+                                disk_format=data['disk_format'],
+                                is_public=True,
+                                min_disk=data['minimum_disk'],
+                                min_ram=data['minimum_ram'],
+                                name=data['name']). \
+                  AndReturn(self.images.first())
         self.mox.ReplayAll()
 
         url = reverse('horizon:nova:images_and_snapshots:images:create')
-        res = self.client.post(url, form_data)
+        res = self.client.post(url, data)
 
         self.assertNoFormErrors(res)
         self.assertEqual(res.status_code, 302)
