@@ -88,7 +88,7 @@ class InstancesAndVolumesViewTest(test.TestCase):
         self.assertContains(res, ">80 GB<", 1, 200)
         self.assertContains(res, ">In-Use<", 1, 200)
         self.assertContains(res,
-                            ">Instance server_1 (1)</a>&nbsp;on /dev/hdn",
+                            ">server_1</a> on /dev/hdn",
                             1, 200)
 
     def test_index_server_list_exception(self):

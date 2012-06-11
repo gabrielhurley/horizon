@@ -48,6 +48,7 @@ class VolumeViewTests(test.TestCase):
         self.assertEqual(res.status_code, 200)
 
     def test_edit_attachments_attached_volume(self):
+        server = self.servers.first()
         servers = deepcopy(self.servers)
         active_server = deepcopy(self.servers.first())
         active_server.status = 'ACTIVE'
@@ -57,12 +58,14 @@ class VolumeViewTests(test.TestCase):
         volume = deepcopy(self.volumes.first())
         volume.id = "2"
         volume.status = "in-use"
-        volume.attachments = [{"id": "1", "server_id": "3",
+        volume.attachments = [{"id": "1", "server_id": server.id,
                                "device": "/dev/hdn"}]
         volumes.add(volume)
 
         self.mox.StubOutWithMock(api, 'volume_get')
         self.mox.StubOutWithMock(api.nova, 'server_list')
+        self.mox.StubOutWithMock(api.nova, 'server_get')
+        api.nova.server_get(IsA(http.HttpRequest), server.id).AndReturn(server)
         api.volume_get(IsA(http.HttpRequest), volume.id) \
                        .AndReturn(volume)
         api.nova.server_list(IsA(http.HttpRequest)).AndReturn(servers.list())
