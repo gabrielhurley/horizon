@@ -18,22 +18,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import logging
-
-from django import shortcuts
-from django.contrib import messages
 from django.core import validators
+from django.core.urlresolvers import reverse
 from django.forms import ValidationError
 from django.utils.translation import ugettext_lazy as _
 
 from horizon import api
 from horizon import exceptions
 from horizon import forms
+from horizon import messages
 from horizon.utils.validators import validate_port_range
 from horizon.utils import fields
-
-
-LOG = logging.getLogger(__name__)
 
 
 class CreateGroup(forms.SelfHandlingForm):
@@ -43,15 +38,18 @@ class CreateGroup(forms.SelfHandlingForm):
 
     def handle(self, request, data):
         try:
-            api.security_group_create(request,
-                                      data['name'],
-                                      data['description'])
+            sg = api.security_group_create(request,
+                                           data['name'],
+                                           data['description'])
             messages.success(request,
                              _('Successfully created security group: %s')
-                                    % data['name'])
+                               % data['name'])
+            return sg
         except:
-            exceptions.handle(request, _('Unable to create security group.'))
-        return shortcuts.redirect('horizon:nova:access_and_security:index')
+            redirect = reverse("horizon:nova:access_and_security:index")
+            exceptions.handle(request,
+                              _('Unable to create security group.'),
+                              redirect=redirect)
 
 
 class AddRule(forms.SelfHandlingForm):
@@ -92,14 +90,15 @@ class AddRule(forms.SelfHandlingForm):
     security_group_id = forms.IntegerField(widget=forms.HiddenInput())
 
     def __init__(self, *args, **kwargs):
+        sg_list = kwargs.pop('sg_list', [])
+        current_group_id = kwargs.pop('current_group_id', None)
         super(AddRule, self).__init__(*args, **kwargs)
-        initials = kwargs.get("initial", {})
-        current_group_id = initials.get('security_group_id', 0)
-        security_groups = initials.get('security_group_list', [])
-        security_groups_choices = [("", "CIDR")]  # default choice is CIDR
-        group_choices = [s for s in security_groups
+        # Determine if there are security groups available for the
+        # source group option; add the choices and enable the option if so.
+        security_groups_choices = [("", "CIDR")]
+        group_choices = [s for s in sg_list
                          if str(s[0]) != current_group_id]
-        if len(group_choices):  # add group choice if available
+        if group_choices:
             security_groups_choices.append(('Security Group', group_choices))
         self.fields['source_group'].choices = security_groups_choices
 
@@ -161,7 +160,9 @@ class AddRule(forms.SelfHandlingForm):
                                                   data['source_group'])
             messages.success(request,
                              _('Successfully added rule: %s') % unicode(rule))
+            return rule
         except:
+            redirect = reverse("horizon:nova:access_and_security:index")
             exceptions.handle(request,
-                              _('Unable to add rule to security group.'))
-        return shortcuts.redirect("horizon:nova:access_and_security:index")
+                              _('Unable to add rule to security group.'),
+                              redirect=redirect)

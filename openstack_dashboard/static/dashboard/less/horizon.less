@@ -815,7 +815,7 @@ td.select {
 /* Actions dropdown */
 
 td.actions_column {
-  width: 150px;
+  width: 175px;
   padding: 10px;
   position: relative;
   min-width: 140px;
@@ -840,6 +840,15 @@ td.actions_column .row_actions button {
 
 td.actions_column .row_actions .hide {
   display: none;
+}
+
+.modal fieldset .form-field select[data-add-item-url] {
+  width: 273px;
+}
+
+select ~ .btn.ajax-add {
+  vertical-align: top;
+  margin-left: 5px;
 }
 
 /* Makes size consistent across browsers when mixing "btn-group" and "small" */

@@ -26,7 +26,6 @@ import logging
 from django import http
 from django import shortcuts
 from django.core.urlresolvers import reverse
-from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.utils import timezone
 from django.utils.encoding import iri_to_uri
@@ -57,8 +56,8 @@ class HorizonMiddleware(object):
         Catches internal Horizon exception classes such as NotAuthorized,
         NotFound and Http302 and handles them gracefully.
         """
-        if isinstance(exception,
-                (exceptions.NotAuthorized, exceptions.NotAuthenticated)):
+        if isinstance(exception, (exceptions.NotAuthorized,
+                                  exceptions.NotAuthenticated)):
             auth_url = reverse("login")
             next_url = iri_to_uri(request.get_full_path())
             if next_url != auth_url:
@@ -66,7 +65,8 @@ class HorizonMiddleware(object):
                 redirect_to = "".join((auth_url, param))
             else:
                 redirect_to = auth_url
-            messages.error(request, unicode(exception))
+            # TODO(gabriel): Find a way to display an appropriate message to
+            # the user *on* the login form...
             if request.is_ajax():
                 response_401 = http.HttpResponse(status=401)
                 response_401['X-Horizon-Location'] = redirect_to
@@ -78,8 +78,8 @@ class HorizonMiddleware(object):
             raise http.Http404(exception)
 
         if isinstance(exception, exceptions.Http302):
-            if exception.message:
-                messages.error(request, exception.message)
+            # TODO(gabriel): Find a way to display an appropriate message to
+            # the user *on* the login form...
             return shortcuts.redirect(exception.location)
 
     def process_response(self, request, response):
