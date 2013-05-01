@@ -42,7 +42,7 @@ class BaseUserForm(forms.SelfHandlingForm):
         # Populate tenant choices
         tenant_choices = [('', _("Select a project"))]
 
-        for tenant in api.keystone.tenant_list(request, admin=True):
+        for tenant in api.keystone.tenant_list(request):
             if tenant.enabled:
                 tenant_choices.append((tenant.id, tenant.name))
         self.fields['tenant_id'].choices = tenant_choices
@@ -143,57 +143,74 @@ class UpdateUserForm(BaseUserForm):
         user = data.pop('id')
         tenant = data.pop('tenant_id')
 
-        if user_is_editable:
-            password = data.pop('password')
-            data.pop('confirm_password', None)
+        # Throw away the password confirmation, we're done with it.
+        data.pop('confirm_password', None)
 
-        if user_is_editable:
-            # Update user details
-            msg_bits = (_('name'), _('email'))
-            try:
-                api.keystone.user_update(request, user, **data)
-                succeeded.extend(msg_bits)
-            except:
-                failed.extend(msg_bits)
-                exceptions.handle(request, ignore=True)
+        if api.keystone.VERSIONS['active'] == "v2.0":
+            if user_is_editable:
+                password = data.pop('password')
 
-        # Update default tenant
-        msg_bits = (_('primary project'),)
-        try:
-            api.keystone.user_update_tenant(request, user, tenant)
-            succeeded.extend(msg_bits)
-        except:
-            failed.append(msg_bits)
-            exceptions.handle(request, ignore=True)
-
-        # Check for existing roles
-        # Show a warning if no role exists for the tenant
-        user_roles = api.keystone.roles_for_user(request, user, tenant)
-        if not user_roles:
-            messages.warning(request,
-                             _('The user %s has no role defined for' +
-                             ' that project.')
-                             % data.get('name', None))
-
-        if user_is_editable:
-            # If present, update password
-            # FIXME(gabriel): password change should be its own form and view
-            if password:
-                msg_bits = (_('password'),)
+            if user_is_editable:
+                # Update user details
+                msg_bits = (_('name'), _('email'))
                 try:
-                    api.keystone.user_update_password(request, user, password)
+                    api.keystone.user_update(request, user, **data)
                     succeeded.extend(msg_bits)
-                    if user == request.user.id:
-                        logout(request)
                 except:
                     failed.extend(msg_bits)
                     exceptions.handle(request, ignore=True)
 
-        if succeeded:
-            messages.success(request, _('User has been updated successfully.'))
-        if failed:
-            failed = map(force_unicode, failed)
-            messages.error(request,
-                           _('Unable to update %(attributes)s for the user.')
-                             % {"attributes": ", ".join(failed)})
+            # Update default tenant
+            msg_bits = (_('primary project'),)
+            try:
+                api.keystone.user_update_tenant(request, user, tenant)
+                succeeded.extend(msg_bits)
+            except:
+                failed.append(msg_bits)
+                exceptions.handle(request, ignore=True)
+
+            # Check for existing roles
+            # Show a warning if no role exists for the tenant
+            user_roles = api.keystone.roles_for_user(request, user, tenant)
+            if not user_roles:
+                messages.warning(request,
+                                 _('The user %s has no role defined for' +
+                                 ' that project.')
+                                 % data.get('name', None))
+
+            if user_is_editable:
+                # If present, update password
+                # FIXME(gabriel): password change should be its own form + view
+                if password:
+                    msg_bits = (_('password'),)
+                    try:
+                        api.keystone.user_update_password(request,
+                                                          user,
+                                                          password)
+                        succeeded.extend(msg_bits)
+                        if user == request.user.id:
+                            logout(request)
+                    except:
+                        failed.extend(msg_bits)
+                        exceptions.handle(request, ignore=True)
+
+            if succeeded:
+                messages.success(request,
+                                 _('User has been updated successfully.'))
+            if failed:
+                failed = map(force_unicode, failed)
+                messages.error(request,
+                               _('Unable to update %(attrs)s for the user.')
+                                 % {"attrs": ", ".join(failed)})
+        else:
+            data['project'] = tenant
+            if user_is_editable:
+                try:
+                    api.keystone.user_update(request, user, **data)
+                    messages.success(request,
+                                 _('User has been updated successfully.'))
+                except:
+                    exceptions.handle(request, ignore=True)
+                    messages.error(request,
+                                   _('Unable to update the user.'))
         return True

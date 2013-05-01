@@ -34,7 +34,7 @@ INDEX_URL = reverse('horizon:admin:projects:index')
 class TenantsViewTests(test.BaseAdminViewTests):
     def test_index(self):
         self.mox.StubOutWithMock(api.keystone, 'tenant_list')
-        api.keystone.tenant_list(IsA(http.HttpRequest), admin=True) \
+        api.keystone.tenant_list(IsA(http.HttpRequest)) \
                     .AndReturn(self.tenants.list())
         self.mox.ReplayAll()
 
@@ -506,8 +506,7 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         quota.metadata_items = 444
         quota.volumes = 444
 
-        updated_project = {"tenant_name": project._info["name"],
-                           "tenant_id": project.id,
+        updated_project = {"name": project._info["name"],
                            "description": project._info["description"],
                            "enabled": project.enabled}
         updated_quota = self._get_quota_info(quota)
@@ -516,7 +515,9 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)
 
         # handle
-        api.keystone.tenant_update(IsA(http.HttpRequest), **updated_project) \
+        api.keystone.tenant_update(IsA(http.HttpRequest),
+                                   project.id,
+                                   **updated_project) \
             .AndReturn(project)
 
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)
@@ -647,8 +648,7 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         quota.metadata_items = 444
         quota.volumes = 444
 
-        updated_project = {"tenant_name": project._info["name"],
-                           "tenant_id": project.id,
+        updated_project = {"name": project._info["name"],
                            "description": project._info["description"],
                            "enabled": project.enabled}
         updated_quota = self._get_quota_info(quota)
@@ -657,7 +657,9 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)
 
         # handle
-        api.keystone.tenant_update(IsA(http.HttpRequest), **updated_project) \
+        api.keystone.tenant_update(IsA(http.HttpRequest),
+                                   project.id,
+                                   **updated_project) \
             .AndRaise(self.exceptions.keystone)
 
         self.mox.ReplayAll()
@@ -722,8 +724,7 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         quota[0].limit = 444
         quota[1].limit = -1
 
-        updated_project = {"tenant_name": project._info["name"],
-                           "tenant_id": project.id,
+        updated_project = {"name": project._info["name"],
                            "description": project._info["description"],
                            "enabled": project.enabled}
         updated_quota = self._get_quota_info(quota)
@@ -733,7 +734,9 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
 
         # handle
         # handle
-        api.keystone.tenant_update(IsA(http.HttpRequest), **updated_project) \
+        api.keystone.tenant_update(IsA(http.HttpRequest),
+                                   project.id,
+                                   **updated_project) \
             .AndReturn(project)
 
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)
@@ -828,7 +831,6 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         quota.volumes = 444
 
         updated_project = {"tenant_name": project._info["name"],
-                           "tenant_id": project.id,
                            "description": project._info["description"],
                            "enabled": project.enabled}
         updated_quota = self._get_quota_info(quota)
@@ -837,7 +839,9 @@ class UpdateProjectWorkflowTests(test.BaseAdminViewTests):
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)
 
         # handle
-        api.keystone.tenant_update(IsA(http.HttpRequest), **updated_project) \
+        api.keystone.tenant_update(IsA(http.HttpRequest),
+                                   project.id,
+                                   **updated_project) \
             .AndReturn(project)
 
         api.keystone.role_list(IsA(http.HttpRequest)).AndReturn(roles)

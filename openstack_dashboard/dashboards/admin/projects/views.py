@@ -71,7 +71,7 @@ class IndexView(tables.DataTableView):
     def get_data(self):
         tenants = []
         try:
-            tenants = api.keystone.tenant_list(self.request, admin=True)
+            tenants = api.keystone.tenant_list(self.request)
         except:
             exceptions.handle(self.request,
                               _("Unable to retrieve project list."))

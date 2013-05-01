@@ -218,7 +218,7 @@ class CreateProject(workflows.Workflow):
         try:
             desc = data['description']
             self.object = api.keystone.tenant_create(request,
-                                                     tenant_name=data['name'],
+                                                     name=data['name'],
                                                      description=desc,
                                                      enabled=data['enabled'])
         except:
@@ -242,9 +242,9 @@ class CreateProject(workflows.Workflow):
                 users_added = 0
                 for user in role_list:
                     api.keystone.add_tenant_user_role(request,
-                                                      tenant_id=project_id,
-                                                      user_id=user,
-                                                      role_id=role.id)
+                                                      project=project_id,
+                                                      user=user,
+                                                      role=role.id)
                     users_added += 1
                 users_to_add -= users_added
         except:
@@ -304,8 +304,8 @@ class UpdateProject(workflows.Workflow):
         # update project info
         try:
             api.keystone.tenant_update(request,
-                                       tenant_id=project_id,
-                                       tenant_name=data['name'],
+                                       project_id,
+                                       name=data['name'],
                                        description=data['description'],
                                        enabled=data['enabled'])
         except:
@@ -317,7 +317,7 @@ class UpdateProject(workflows.Workflow):
         try:
             available_roles = api.keystone.role_list(request)
             project_members = api.keystone.user_list(request,
-                                                     tenant_id=project_id)
+                                                     project=project_id)
             users_to_modify = len(project_members)
             for user in project_members:
                 current_roles = [role for role in
@@ -333,9 +333,9 @@ class UpdateProject(workflows.Workflow):
                             # user role has changed
                             api.keystone.add_tenant_user_role(
                                 request,
-                                tenant_id=project_id,
-                                user_id=user.id,
-                                role_id=role.id)
+                                project=project_id,
+                                user=user.id,
+                                role=role.id)
                         else:
                             # user role is unchanged
                             current_roles.pop(current_roles.index(role))
@@ -369,9 +369,9 @@ class UpdateProject(workflows.Workflow):
                 for user_id in role_list:
                     if not filter(lambda x: user_id == x.id, project_members):
                         api.keystone.add_tenant_user_role(request,
-                                                          tenant_id=project_id,
-                                                          user_id=user_id,
-                                                          role_id=role.id)
+                                                          project=project_id,
+                                                          user=user_id,
+                                                          role=role.id)
                     users_added += 1
                 users_to_modify -= users_added
         except:
